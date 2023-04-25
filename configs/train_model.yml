@@ -1,0 +1,38 @@
+model:
+  hidden_channels: 128
+  encoder:
+    name: hierGT
+    hidden_channels: 128
+    edge_channels: 64
+    key_channels: 128
+    num_heads: 4
+    num_interactions: 6
+    cutoff: 10.0
+    knn: 24 # kNN Graph
+    num_filters: 128
+
+train:
+  multi_gpu: False
+  seed: 2023
+  batch_size: 4
+  num_workers: 4
+  max_iters: 1_000_000
+  warm_up: 50000
+  val_freq: 10000
+  max_grad_norm: 200
+  optimizer:
+    type: adam
+    lr: 1.e-4
+    weight_decay: 0
+    beta1: 0.99
+    beta2: 0.999
+  scheduler:
+    type: plateau
+    factor: 0.6
+    patience: 10
+    min_lr: 1.e-5
+
+dataset:
+  name: pl
+  path: ./data/crossdocked_pocket10
+  split: ./data/split.pt

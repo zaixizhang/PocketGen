@@ -1,7 +1,9 @@
 model:
   hidden_channels: 128
   subpocket_motif: True
-  checkpoint: './logs/train_model_2022_12_31__01_49_15/checkpoints/990000.pt'
+  #checkpoint: './logs/train_model_2023_09_12__15_56_36/checkpoints/70000.pt'
+  checkpoint: './logs/train_model_2023_09_21__12_02_47/checkpoints/20000.pt'
+  orig_data_path: ./data/crossdocked/crossdocked_v1.1_rmsd1.0/
   encoder:
     name: hierGT
     hidden_channels: 128
@@ -10,13 +12,15 @@ model:
     num_heads: 4
     num_interactions: 6
     cutoff: 10.0
-    knn: 24 # kNN Graph
+    knn: 8 # kNN Graph
     num_filters: 128
+    d_model: 128
+    
 
 train:
   multi_gpu: False
   seed: 2023
-  batch_size: 4
+  batch_size: 2
   num_workers: 4
   max_iters: 1_000_000
   warm_up: 50000
@@ -37,5 +41,5 @@ train:
 
 dataset:
   name: pl
-  path: ./data/crossdocked_pocket10
-  split: ./data/split.pt
+  path: ./data/crossdocked/crossdocked_pocket10
+  split: ./data/crossdocked/split.pt

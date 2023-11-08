@@ -1,0 +1,42 @@
+model:
+  hidden_channels: 128
+  checkpoint: './logs/train_model_2023_09_21__12_02_47/checkpoints/50000.pt'
+  orig_data_path: ./data/bindingmoad/all_data/
+
+  encoder:
+    name: hierGT
+    hidden_channels: 128
+    edge_channels: 64
+    key_channels: 128
+    num_heads: 4
+    num_interactions: 6
+    cutoff: 10.0
+    knn: 8 # kNN Graph
+    num_filters: 128
+    d_model: 128
+
+train:
+  multi_gpu: False
+  seed: 2023
+  batch_size: 2
+  num_workers: 4
+  max_iters: 100_000
+  warm_up: 5000
+  val_freq: 1000
+  max_grad_norm: 200
+  optimizer:
+    type: adam
+    lr: 1.e-4
+    weight_decay: 0
+    beta1: 0.99
+    beta2: 0.999
+  scheduler:
+    type: plateau
+    factor: 0.6
+    patience: 5
+    min_lr: 1.e-5
+
+dataset:
+  name: pl
+  path: ./data/bindingmoad/pocket_10
+  split: ./data/bindingmoad/split.pt

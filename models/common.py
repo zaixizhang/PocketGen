@@ -263,7 +263,7 @@ def compose_context_stable(h_protein, h_ligand, pos_protein, pos_ligand, batch_p
 def compose_external_attention(batch_protein, batch_ligand, edit_protein_mask):
     num_graphs = batch_protein.max().item() + 1
     row, col = [], []
-    protein_index, ligand_index = torch.arange(len(batch_protein)), torch.arange(len(batch_ligand))
+    protein_index, ligand_index = torch.arange(len(batch_protein)).to(batch_protein.device), torch.arange(len(batch_ligand)).to(batch_protein.device)
 
     for i in range(num_graphs):
         mask_p, mask_l = (batch_protein == i), (batch_ligand == i)

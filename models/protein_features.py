@@ -221,7 +221,7 @@ class ProteinFeatures(nn.Module):
         D_features = torch.cat((torch.cos(D), torch.sin(D)), 2)
         return D_features
 
-    def forward(self, X, pos_ligand_coarse, edit_residue, S_id, batch):
+    def forward(self, pos_ligand_coarse, edit_residue, X, S_id, batch):
         """ Featurize coordinates as an attributed graph """
         X_ca = X[:,1,:]
         edge_index = knn_graph(X_ca, k=self.top_k, batch=batch, flow='target_to_source')
@@ -233,7 +233,7 @@ class ProteinFeatures(nn.Module):
         E = torch.cat([E_positional, RBF, O_features], -1)
 
         # additional edge index
-        row = torch.arange(len(edit_residue))[edit_residue].to(X.device)
+        row = torch.arange(len(edit_residue)).to(X.device)[edit_residue]
         col = torch.cat([torch.ones(edit_residue[batch==s].sum(), dtype=torch.long)*s for s in range(batch.max().item()+1)]).to(X.device)
         edge_length_new = torch.norm(X_ca[row] - pos_ligand_coarse[col], dim=1)
         RBF = self._rbf(edge_length_new)

@@ -10,7 +10,7 @@ from ..protein_ligand import PDBProtein, parse_sdf_file
 from ..data import ProteinLigandData, torchify_dict
 
 
-def from_protein_ligand_dicts(protein_dict=None, ligand_dict=None, residue_dict=None):
+def from_protein_ligand_dicts(protein_dict=None, ligand_dict=None, residue_dict=None, seq=None, full_seq_idx=None, r10_idx=None):
     instance = {}
 
     if protein_dict is not None:
@@ -25,6 +25,15 @@ def from_protein_ligand_dicts(protein_dict=None, ligand_dict=None, residue_dict=
         for key, item in residue_dict.items():
             instance[key] = item
 
+    if seq is not None:
+        instance['seq'] = seq
+
+    if full_seq_idx is not None:
+        instance['full_seq_idx'] = full_seq_idx
+
+    if r10_idx is not None:
+        instance['r10_idx'] = r10_idx
+
     return instance
 
 
@@ -33,7 +42,7 @@ class PocketLigandPairDataset(Dataset):
     def __init__(self, raw_path, transform=None):
         super().__init__()
         self.raw_path = raw_path.rstrip('/')
-        self.index_path = os.path.join(self.raw_path, 'index.pkl')
+        self.index_path = os.path.join(self.raw_path, 'index_seq.pkl')
         self.processed_path = os.path.join(os.path.dirname(self.raw_path),
                                            os.path.basename(self.raw_path) + '_processed.lmdb')
         self.name2id_path = os.path.join(os.path.dirname(self.raw_path),
@@ -45,9 +54,9 @@ class PocketLigandPairDataset(Dataset):
 
         if not os.path.exists(self.processed_path):
             self._process()
-            self._precompute_name2id()
+            # self._precompute_name2id()
 
-        self.name2id = torch.load(self.name2id_path)
+        # self.name2id = torch.load(self.name2id_path)
 
     def _connect_db(self):
         """
@@ -85,22 +94,30 @@ class PocketLigandPairDataset(Dataset):
 
         num_skipped = 0
         with db.begin(write=True, buffers=True) as txn:
-            for i, (pocket_fn, ligand_fn, _, rmsd_str) in enumerate(tqdm(index)):
+            for i, (pocket_fn, ligand_fn, protein_fn, rmsd_str, seq, full_seq_idx, r10_idx) in enumerate(tqdm(index)):
                 if pocket_fn is None: continue
+                # if len(seq)>500: continue
                 try:
                     pdb_data = PDBProtein(os.path.join(self.raw_path, pocket_fn))
                     pocket_dict = pdb_data.to_dict_atom()
                     residue_dict = pdb_data.to_dict_residue()
                     ligand_dict = parse_sdf_file(os.path.join(self.raw_path, ligand_fn))
-                    residue_dict['protein_edit_residue'] = pdb_data.query_residues_ligand(ligand_dict)
-                    assert residue_dict['protein_edit_residue'].sum()>0
+                    _, residue_dict['protein_edit_residue'] = pdb_data.query_residues_ligand(ligand_dict)
+                    assert residue_dict['protein_edit_residue'].sum() > 0 and residue_dict['protein_edit_residue'].sum() == len(full_seq_idx)
+                    assert len(residue_dict['protein_edit_residue']) == len(r10_idx)
+                    full_seq_idx.sort()
+                    r10_idx.sort()
                     data = from_protein_ligand_dicts(
                         protein_dict=torchify_dict(pocket_dict),
                         ligand_dict=torchify_dict(ligand_dict),
-                        residue_dict=torchify_dict(residue_dict)
+                        residue_dict=torchify_dict(residue_dict),
+                        seq=seq,
+                        full_seq_idx=torch.tensor(full_seq_idx),
+                        r10_idx=torch.tensor(r10_idx)
                     )
                     data['protein_filename'] = pocket_fn
                     data['ligand_filename'] = ligand_fn
+                    data['whole_protein_name'] = protein_fn
                     txn.put(
                         key=str(i).encode(),
                         value=pickle.dumps(data)

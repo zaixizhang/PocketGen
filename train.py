@@ -1,12 +1,15 @@
+CUDA_LAUNCH_BLOCKING=1
 import shutil
 import argparse
-from tqdm.auto import tqdm
+from functools import partial
 import torch
+torch.autograd.set_detect_anomaly(True)
+import esm
 from torch.nn.utils import clip_grad_norm_
 import torch.utils.tensorboard
 from torch_geometric.transforms import Compose
 import numpy as np
-from models.PD import Pocket_Design
+from models.PD import Pocket_Design_new, init_weight
 from utils.datasets import *
 from utils.misc import *
 from utils.train import *
@@ -16,7 +19,7 @@ from torch.utils.data import DataLoader
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='./configs/train_model.yml')
+    parser.add_argument('--config', type=str, default='./configs/train_model_moad.yml')
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--logdir', type=str, default='./logs')
     args = parser.parse_args()
@@ -36,51 +39,74 @@ if __name__ == '__main__':
     logger.info(config)
     shutil.copyfile(args.config, os.path.join(log_dir, os.path.basename(args.config)))
     shutil.copytree('./models', os.path.join(log_dir, 'models'))
+    shutil.copyfile('./utils/data.py', os.path.join(log_dir, 'utils'))
+    shutil.copyfile('./run.slurm', os.path.join(log_dir, 'run'))
 
     # Transforms
     protein_featurizer = FeaturizeProteinAtom()
     ligand_featurizer = FeaturizeLigandAtom()
-    transform = Compose([protein_featurizer, ligand_featurizer,])
+    transform = Compose([
+        #LigandCountNeighbors(),
+        protein_featurizer,
+        ligand_featurizer,
+    ])
+
+    # esm
+    name = 'esm1b_t33_650M_UR50S'
+    pretrained_model, alphabet = esm.pretrained.load_model_and_alphabet_hub(name)
+    batch_converter = alphabet.get_batch_converter()
 
     # Datasets and loaders
     logger.info('Loading dataset...')
     dataset, subsets = get_dataset(config=config.dataset, transform=transform, )
-    train_set, val_set = subsets['train'], subsets['val']
+    train_set, val_set = subsets['train'], subsets['test']
     train_iterator = inf_iterator(DataLoader(train_set, batch_size=config.train.batch_size,
                                              shuffle=True, num_workers=config.train.num_workers,
-                                             collate_fn=collate_mols))
+                                             collate_fn=partial(collate_mols_block, batch_converter=batch_converter)))
     val_loader = DataLoader(val_set, batch_size=config.train.batch_size, shuffle=False,
-                            num_workers=config.train.num_workers, collate_fn=collate_mols)
+                            num_workers=config.train.num_workers, collate_fn=partial(collate_mols_block, batch_converter=batch_converter))
 
     # Model
     logger.info('Building model...')
-    model = Pocket_Design(
+    model = Pocket_Design_new(
         config.model,
         protein_atom_feature_dim=protein_featurizer.feature_dim,
         ligand_atom_feature_dim=ligand_featurizer.feature_dim,
         device=args.device
     ).to(args.device)
+    #ckpt = torch.load(config.model.checkpoint, map_location=args.device)
+    #model.load_state_dict(ckpt['model'])
+
+    #model.apply(init_weight)
+    total = sum([param.nelement() for param in model.parameters()])
+ 
+    print("Number of parameter: %.2fM" % (total/1e6))
 
     # Optimizer and scheduler
     optimizer = get_optimizer(config.train.optimizer, model)
     scheduler = get_scheduler(config.train.scheduler, optimizer)
+
 
     def train(it):
         model.train()
         optimizer.zero_grad()
         batch = next(train_iterator)
         for key in batch:
-            batch[key] = batch[key].to(args.device)
+            if torch.is_tensor(batch[key]):
+                batch[key] = batch[key].to(args.device)
 
-        loss, loss_list = model(batch)
+        loss, loss_list, aar, rmsd = model(batch)
         loss.backward()
         orig_grad_norm = clip_grad_norm_(model.parameters(), config.train.max_grad_norm)
         optimizer.step()
 
-        logger.info('[Train] Iter %d | Loss %.6f | Loss(huber) %.6f | Loss(pred) %.6f | Orig_grad_norm %.6f' % (it, loss.item(), loss_list[0].item(), loss_list[1].item(), orig_grad_norm))
+        logger.info('[Train] Iter %d | Loss %.6f | Loss(huber) %.6f | Loss(pred) %.6f | Loss(bond & andgle) %.6f | AAR %.6f | RMSD %.6f '
+                    '|Orig_grad_norm %.6f' % (it, loss.item(), loss_list[0].item(), loss_list[1].item(), loss_list[2], aar.item(),
+                                              rmsd.item(), orig_grad_norm))
         writer.add_scalar('train/loss', loss.item(), it)
-        writer.add_scalar('train/pred_loss', loss_list[0].item(), it)
-        writer.add_scalar('train/comb_loss', loss_list[1].item(), it)
+        writer.add_scalar('train/huber_loss', loss_list[0].item(), it)
+        writer.add_scalar('train/pred_loss', loss_list[1].item(), it)
+        writer.add_scalar('train/bondangle_loss', loss_list[2], it)
         writer.add_scalar('train/lr', optimizer.param_groups[0]['lr'], it)
         writer.add_scalar('train/grad', orig_grad_norm, it)
         writer.flush()
@@ -92,8 +118,9 @@ if __name__ == '__main__':
             model.eval()
             for batch in tqdm(val_loader, desc='Validate'):
                 for key in batch:
-                    batch[key] = batch[key].to(args.device)
-                loss, _ = model(batch)
+                    if torch.is_tensor(batch[key]):
+                        batch[key] = batch[key].to(args.device)
+                loss, _, _, _ = model(batch)
                 sum_loss += loss.item()
                 sum_n += 1
         avg_loss = sum_loss / sum_n
@@ -113,6 +140,7 @@ if __name__ == '__main__':
 
     try:
         for it in range(1, config.train.max_iters + 1):
+            # with torch.autograd.detect_anomaly():
             train(it)
             if it % config.train.val_freq == 0 or it == config.train.max_iters:
                 validate(it)

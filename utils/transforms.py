@@ -145,6 +145,81 @@ class RefineData(object):
         return data
 
 
+class FocalBuilder(object):
+    def __init__(self, close_threshold=0.8, max_bond_length=2.4):
+        self.close_threshold = close_threshold
+        self.max_bond_length = max_bond_length
+        super().__init__()
+
+    def __call__(self, data: ProteinLigandData):
+        # ligand_context_pos = data.ligand_context_pos
+        # ligand_pos = data.ligand_pos
+        ligand_masked_pos = data.ligand_masked_pos
+        protein_pos = data.protein_pos
+        context_idx = data.context_idx
+        masked_idx = data.masked_idx
+        old_bond_index = data.ligand_bond_index
+        # old_bond_types = data.ligand_bond_type  # type: 0, 1, 2
+        has_unmask_atoms = context_idx.nelement() > 0
+        if has_unmask_atoms:
+            # # get bridge bond index (mask-context bond)
+            ind_edge_index_candidate = [
+                (context_node in context_idx) and (mask_node in masked_idx)
+                for mask_node, context_node in zip(*old_bond_index)
+            ]  # the mask-context order is right
+            bridge_bond_index = old_bond_index[:, ind_edge_index_candidate]
+            # candidate_bond_types = old_bond_types[idx_edge_index_candidate]
+            idx_generated_in_whole_ligand = bridge_bond_index[0]
+            idx_focal_in_whole_ligand = bridge_bond_index[1]
+
+            index_changer_masked = torch.zeros(masked_idx.max() + 1, dtype=torch.int64)
+            index_changer_masked[masked_idx] = torch.arange(len(masked_idx))
+            idx_generated_in_ligand_masked = index_changer_masked[idx_generated_in_whole_ligand]
+            pos_generate = ligand_masked_pos[idx_generated_in_ligand_masked]
+
+            data.idx_generated_in_ligand_masked = idx_generated_in_ligand_masked
+            data.pos_generate = pos_generate
+
+            index_changer_context = torch.zeros(context_idx.max() + 1, dtype=torch.int64)
+            index_changer_context[context_idx] = torch.arange(len(context_idx))
+            idx_focal_in_ligand_context = index_changer_context[idx_focal_in_whole_ligand]
+            idx_focal_in_compose = idx_focal_in_ligand_context  # if ligand_context was not before protein in the compose, this was not correct
+            data.idx_focal_in_compose = idx_focal_in_compose
+
+            data.idx_protein_all_mask = torch.empty(0, dtype=torch.long)  # no use if has context
+            data.y_protein_frontier = torch.empty(0, dtype=torch.bool)  # no use if has context
+
+        else:  # # the initial atom. surface atoms between ligand and protein
+            assign_index = radius(x=ligand_masked_pos, y=protein_pos, r=4., num_workers=16)
+            if assign_index.size(1) == 0:
+                dist = torch.norm(data.protein_pos.unsqueeze(1) - data.ligand_masked_pos.unsqueeze(0), p=2, dim=-1)
+                assign_index = torch.nonzero(dist <= torch.min(dist) + 1e-5)[0:1].transpose(0, 1)
+            idx_focal_in_protein = assign_index[0]
+            data.idx_focal_in_compose = idx_focal_in_protein  # no ligand context, so all composes are protein atoms
+            data.pos_generate = ligand_masked_pos[assign_index[1]]
+            data.idx_generated_in_ligand_masked = torch.unique(assign_index[1])  # for real of the contractive transform
+
+            data.idx_protein_all_mask = data.idx_protein_in_compose  # for input of initial frontier prediction
+            y_protein_frontier = torch.zeros_like(data.idx_protein_all_mask,
+                                                  dtype=torch.bool)  # for label of initial frontier prediction
+            y_protein_frontier[torch.unique(idx_focal_in_protein)] = True
+            data.y_protein_frontier = y_protein_frontier
+
+        # generate not positions: around pos_focal ( with `max_bond_length` distance) but not close to true generated within `close_threshold`
+        # pos_focal = ligand_context_pos[idx_focal_in_ligand_context]
+        # pos_notgenerate = pos_focal + torch.randn_like(pos_focal) * self.max_bond_length  / 2.4
+        # dist = torch.norm(pos_generate - pos_notgenerate, p=2, dim=-1)
+        # ind_close = (dist < self.close_threshold)
+        # while ind_close.any():
+        #     new_pos_notgenerate = pos_focal[ind_close] + torch.randn_like(pos_focal[ind_close]) * self.max_bond_length  / 2.3
+        #     dist[ind_close] = torch.norm(pos_generate[ind_close] - new_pos_notgenerate, p=2, dim=-1)
+        #     pos_notgenerate[ind_close] = new_pos_notgenerate
+        #     ind_close = (dist < self.close_threshold)
+        # data.pos_notgenerate = pos_notgenerate
+
+        return data
+
+
 class AtomComposer(object):
 
     def __init__(self, protein_dim, ligand_dim, knn):
@@ -202,21 +277,17 @@ class FeaturizeProteinAtom(object):
 
     def __init__(self):
         super().__init__()
-        # self.atomic_numbers = torch.LongTensor([1, 6, 7, 8, 16, 34])    # H, C, N, O, S, Se
         self.atomic_numbers = torch.LongTensor([6, 7, 8, 16, 34])  # H, C, N, O, S, Se
         self.atom_types = torch.arange(38)
         self.max_num_aa = 21
 
     @property
     def feature_dim(self):
-        return 38 + self.max_num_aa
+        return 38
 
     def __call__(self, data: ProteinLigandData):
-        #element = data['protein_element'].view(-1, 1) == self.atomic_numbers.view(1, -1)  # (N_atoms, N_elements)
         atom_type = data['protein_atom_name'].view(-1, 1) == self.atom_types.view(1, -1)
-        amino_acid = F.one_hot(data['protein_atom_to_aa_type'], num_classes=self.max_num_aa)
-        x = torch.cat([atom_type, amino_acid], dim=-1)
-        data['protein_atom_feature'] = x.float()
+        data['protein_atom_feature'] = atom_type.float()
         return data
 
 

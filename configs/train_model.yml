@@ -1,24 +1,29 @@
 model:
   hidden_channels: 128
+  checkpoint: './logs/train_model_2023_09_21__12_02_47/checkpoints/50000.pt'
+  orig_data_path: /n/holyscratch01/mzitnik_lab/zaixizhang/PDB_clean/pdbs_no_pdbbind/PDB_clean
+
   encoder:
-    name: hierGT
+    name: GET
     hidden_channels: 128
     edge_channels: 64
     key_channels: 128
     num_heads: 4
     num_interactions: 6
     cutoff: 10.0
-    knn: 24 # kNN Graph
+    knn: 8 # kNN Graph
     num_filters: 128
+    d_model: 128
+    esm: 'esm2_t33_650M_UR50D'
 
 train:
   multi_gpu: False
   seed: 2023
-  batch_size: 4
+  batch_size: 2
   num_workers: 4
-  max_iters: 1_000_000
-  warm_up: 50000
-  val_freq: 10000
+  max_iters: 100_000
+  warm_up: 5000
+  val_freq: 1000
   max_grad_norm: 200
   optimizer:
     type: adam
@@ -29,10 +34,10 @@ train:
   scheduler:
     type: plateau
     factor: 0.6
-    patience: 10
+    patience: 5
     min_lr: 1.e-5
 
 dataset:
   name: pl
-  path: ./data/crossdocked_pocket10
-  split: ./data/split.pt
+  path: /n/holyscratch01/mzitnik_lab/zaixizhang/PDB_clean/pdbs_no_pdbbind/PDB_clean
+  split: /n/holyscratch01/mzitnik_lab/zaixizhang/PDB_clean/pdbs_no_pdbbind/PDB_clean/split.pt

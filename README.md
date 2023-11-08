@@ -5,8 +5,12 @@ conda env create -f fair_env.yaml
 conda activate fair_env
 ```
 
-## Datasets
-Please refer to the `data` folder.
+## Dataset Processing
+
+```
+python data/extract_pocket.py
+python split_pl_dataset.py
+```
 
 
 ## Training

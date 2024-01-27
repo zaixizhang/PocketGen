@@ -1,4 +1,4 @@
-name: fair_env
+name: pocketgen_env
 channels:
   - pytorch
   - pyg

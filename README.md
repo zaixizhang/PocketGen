@@ -1,4 +1,3 @@
-This is a preliminary version of Pocket Generation for reference. 
 ## Install conda environment via conda yaml file
 ```bash
 conda env create -f fair_env.yaml
@@ -24,4 +23,6 @@ python train_recycle.py
 ```
 python generate_new.py
 ```
+
+Pretrained checkpoint: https://drive.google.com/file/d/1nE1YUEPUJ4Szz6VUgxEKROaGQhAAG9_V/view?usp=sharing 
 

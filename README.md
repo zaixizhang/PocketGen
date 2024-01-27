@@ -22,6 +22,6 @@ python train_recycle.py
 ## Generation
 
 ```
-python data/optimization_mp.py
+python generate_new.py
 ```
 

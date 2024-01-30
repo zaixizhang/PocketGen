@@ -30,8 +30,8 @@ We use CrossDocked and Binding MOAD datasets to benchmark pocket generation.
 ### CrossDocked
 We download and process the CrossDocked dataset as described by the authors of [TargetDiff](https://github.com/guanjq/targetdiff)
 ```
-python data/extract_pocket.py
-python split_pl_dataset.py
+python data_preparation/extract_pocket.py
+python data_preparation/split_pl_dataset.py
 ```
 
 ### Binding MOAD

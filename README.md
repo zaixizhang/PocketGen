@@ -20,7 +20,7 @@ conda install pytorch pytorch-cuda=11.6 -c pytorch -c nvidia
 conda install pyg -c pyg
 conda install rdkit openbabel tensorboard pyyaml easydict python-lmdb -c conda-forge
 conda install -c conda-forge openmm pdbfixer flask
-pip install meeko==0.1.dev3 scipy pdb2pqr vina==1.2.2 
+pip install meeko==0.1.dev3 wandb scipy pdb2pqr vina==1.2.2 
 python -m pip install git+https://github.com/Valdes-Tresanco-MS/AutoDockTools_py3
 ```
 
@@ -60,7 +60,7 @@ For each dataset, it requires the preprocessed .lmdb file and split file _split.
 ## Training
 
 ```
-python train_recycle.py
+python train_recycle.py --config ./config/train_model.yml
 ```
 
 ## Generation

@@ -47,9 +47,7 @@ if __name__ == '__main__':
         project="pocket generation",
 
         # track hyperparameters and run metadata
-        config={
-            "esm": 'esm1b_t33_650M_UR50S',
-        }
+        config=config
     )
 
     # Transforms

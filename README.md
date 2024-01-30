@@ -8,8 +8,8 @@
 
 ### Install conda environment via conda yaml file
 ```bash
-conda env create -f pocketgen_env.yaml
-conda activate pocketgen_env
+conda env create -f pocketgen.yaml
+conda activate pocketgen
 ```
 
 ### Install via Conda and Pip

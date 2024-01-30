@@ -12,12 +12,16 @@ conda activate pocketgen_env
 
 ## Benchmark Datasets
 We use CrossDocked and Binding MOAD datasets to benchmark pocket generation.
+```
+python data/extract_pocket.py
+python split_pl_dataset.py
+```
 
 ### CrossDocked
 We download and process the CrossDocked dataset as described by the authors of [TargetDiff](https://github.com/guanjq/targetdiff)
 
 ### Binding MOAD
-#### Data preparation
+We download and process the Binding MOAD dataset following the authors of [DiffSBDD](https://github.com/arneschneuing/DiffSBDD)
 Download the dataset
 ```bash
 wget http://www.bindingmoad.org/files/biou/every_part_a.zip
@@ -30,11 +34,6 @@ unzip every_part_b.zip
 Process the raw data using
 ``` bash
 python -W ignore process_bindingmoad.py <bindingmoad_dir>
-```
-
-```
-python data/extract_pocket.py
-python split_pl_dataset.py
 ```
 
 

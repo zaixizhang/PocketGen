@@ -1,4 +1,4 @@
-# :loudspeaker: Fragment wise 3D Structure-based Molecular Generation 
+# :loudspeaker: PocketGen: Full Atom Protein Pocket Generation with Sequence-Structure Consistency
 
 <div align=center>
 <img src="./assets/pocketgen.png" width="100%" height="100%" alt="TOC" align=center />

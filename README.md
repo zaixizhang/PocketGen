@@ -49,6 +49,10 @@ Process the raw data using
 python -W ignore process_bindingmoad.py <bindingmoad_dir>
 ```
 
+### Processed datasets
+We also provide the processed datasets for training from scratch at [zenodo](https://zenodo.org/records/10125312)
+
+For each dataset, it requires the preprocessed .lmdb file and split file _split.pt
 
 ## Training
 

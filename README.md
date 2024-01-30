@@ -19,6 +19,7 @@ conda activate targetdiff
 conda install pytorch pytorch-cuda=11.6 -c pytorch -c nvidia
 conda install pyg -c pyg
 conda install rdkit openbabel tensorboard pyyaml easydict python-lmdb -c conda-forge
+conda install -c conda-forge openmm pdbfixer flask
 pip install meeko==0.1.dev3 scipy pdb2pqr vina==1.2.2 
 python -m pip install git+https://github.com/Valdes-Tresanco-MS/AutoDockTools_py3
 ```

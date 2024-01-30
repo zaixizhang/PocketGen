@@ -19,7 +19,7 @@ model:
 
 train:
   multi_gpu: False
-  seed: 2023
+  seed: 2024
   batch_size: 2
   num_workers: 4
   max_iters: 300_000

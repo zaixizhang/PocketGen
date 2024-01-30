@@ -1,7 +1,8 @@
 model:
   hidden_channels: 128
-  checkpoint: './logs/train_model_2023_09_21__12_02_47/checkpoints/50000.pt'
-  orig_data_path: /n/holyscratch01/mzitnik_lab/zaixizhang/PDB_clean/pdbs_no_pdbbind/PDB_clean
+  checkpoint: './checkpoints/checkpoint.pt'
+  orig_data_path: ./data/crossdocked_v1.1_rmsd1.0
+  pocket10_path: ./data/crossdocked_v1.1_rmsd1.0_pocket10
 
   encoder:
     name: GET
@@ -21,10 +22,10 @@ train:
   seed: 2023
   batch_size: 2
   num_workers: 4
-  max_iters: 100_000
+  max_iters: 300_000
   warm_up: 5000
   val_freq: 1000
-  max_grad_norm: 200
+  max_grad_norm: 400
   optimizer:
     type: adam
     lr: 1.e-4
@@ -39,5 +40,5 @@ train:
 
 dataset:
   name: pl
-  path: /n/holyscratch01/mzitnik_lab/zaixizhang/PDB_clean/pdbs_no_pdbbind/PDB_clean
-  split: /n/holyscratch01/mzitnik_lab/zaixizhang/PDB_clean/pdbs_no_pdbbind/PDB_clean/split.pt
+  path: ./data/crossdocked_v1.1_rmsd1.0_pocket10
+  split: ./data/crossdocked_v1.1_rmsd1.0_pocket10/split.pt

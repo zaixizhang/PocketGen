@@ -51,6 +51,11 @@ Process the raw data using
 ``` bash
 python -W ignore process_bindingmoad.py <bindingmoad_dir>
 ```
+Use the following commands to extract pockets, create index_seq.pkl, and split the dataset.
+```
+python data_preparation/extract_pockets_moad.py
+python data_preparation/split_pl_dataset_moad.py
+```
 
 ### Processed datasets
 We also provide the processed datasets for training from scratch at [zenodo](https://zenodo.org/records/10125312)

@@ -10,6 +10,17 @@ conda env create -f pocketgen_env.yaml
 conda activate pocketgen_env
 ```
 
+### Install via Conda and Pip
+```bash
+conda create -n targetdiff python=3.8
+conda activate targetdiff
+conda install pytorch pytorch-cuda=11.6 -c pytorch -c nvidia
+conda install pyg -c pyg
+conda install rdkit openbabel tensorboard pyyaml easydict python-lmdb -c conda-forge
+pip install meeko==0.1.dev3 scipy pdb2pqr vina==1.2.2 
+python -m pip install git+https://github.com/Valdes-Tresanco-MS/AutoDockTools_py3
+```
+
 ## Benchmark Datasets
 We use CrossDocked and Binding MOAD datasets to benchmark pocket generation.
 ```
@@ -48,6 +59,9 @@ Pretrained checkpoint: https://drive.google.com/file/d/1nE1YUEPUJ4Szz6VUgxEKROaG
 ```
 python generate_new.py
 ```
+
+## Acknowledgement
+This project draws in part from [TargetDiff](https://github.com/guanjq/targetdiff) and [ByProt](https://github.com/BytedProtein/ByProt), supported by MIT License and Apache-2.0 License. Thanks for their great work and code!
 
 
 

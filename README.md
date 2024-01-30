@@ -58,9 +58,13 @@ We also provide the processed datasets for training from scratch at [zenodo](htt
 For each dataset, it requires the preprocessed .lmdb file and split file _split.pt
 
 ## Training
-
+Train on CrossDocked:
 ```
 python train_recycle.py --config ./config/train_model.yml
+```
+Train on Binding MOAD:
+```
+python train_recycle.py --config ./config/train_model_moad.yml
 ```
 
 ## Generation

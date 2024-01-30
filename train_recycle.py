@@ -40,8 +40,6 @@ if __name__ == '__main__':
     logger.info(config)
     shutil.copyfile(args.config, os.path.join(log_dir, os.path.basename(args.config)))
     shutil.copytree('./models', os.path.join(log_dir, 'models'))
-    shutil.copyfile('./utils/data.py', os.path.join(log_dir, 'utils'))
-    shutil.copyfile('./run.slurm', os.path.join(log_dir, 'run'))
 
     # Wandb
     wandb.init(

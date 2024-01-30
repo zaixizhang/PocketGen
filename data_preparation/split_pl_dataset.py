@@ -37,9 +37,9 @@ def get_unique_pockets(dataset, raw_id, used_pdb, num_pockets):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', type=str, default='/n/holyscratch01/mzitnik_lab/zaixizhang/crossdocked_pocket10')
-    parser.add_argument('--dest', type=str, default='./data/crossdocked/split.pt')
-    parser.add_argument('--fixed_split', type=str, default='./data/crossdocked/split_by_name.pt')
+    parser.add_argument('--path', type=str, default='./data/crossdocked_v1.1_rmsd1.0_pocket10')
+    parser.add_argument('--dest', type=str, default='./data/crossdocked_v1.1_rmsd1.0_pocket10/split.pt')
+    parser.add_argument('--fixed_split', type=str, default='./data/split_by_name.pt')
     parser.add_argument('--train', type=int, default=100000)
     parser.add_argument('--val', type=int, default=1000)
     parser.add_argument('--test', type=int, default=20000)

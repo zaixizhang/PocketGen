@@ -4,7 +4,9 @@
 <img src="./assets/pocketgen.png" width="100%" height="100%" alt="TOC" align=center />
 </div>
 
-## Install conda environment via conda yaml file
+## Environment
+
+### Install conda environment via conda yaml file
 ```bash
 conda env create -f pocketgen_env.yaml
 conda activate pocketgen_env

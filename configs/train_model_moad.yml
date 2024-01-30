@@ -1,10 +1,11 @@
 model:
   hidden_channels: 128
-  checkpoint: './logs/train_model_2023_09_21__12_02_47/checkpoints/50000.pt'
+  checkpoint: './checkpoints/checkpoint.pt'
   orig_data_path: ./data/bindingmoad/all_data/
+  pocket10_path: ./data/bindingmoad/pocket_10
 
   encoder:
-    name: hierGT
+    name: GET
     hidden_channels: 128
     edge_channels: 64
     key_channels: 128
@@ -14,16 +15,17 @@ model:
     knn: 8 # kNN Graph
     num_filters: 128
     d_model: 128
+    esm: 'esm2_t33_650M_UR50D'
 
 train:
   multi_gpu: False
   seed: 2023
   batch_size: 2
   num_workers: 4
-  max_iters: 100_000
+  max_iters: 200_000
   warm_up: 5000
   val_freq: 1000
-  max_grad_norm: 200
+  max_grad_norm: 400
   optimizer:
     type: adam
     lr: 1.e-4

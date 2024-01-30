@@ -25,13 +25,13 @@ python -m pip install git+https://github.com/Valdes-Tresanco-MS/AutoDockTools_py
 
 ## Benchmark Datasets
 We use CrossDocked and Binding MOAD datasets to benchmark pocket generation.
+
+### CrossDocked
+We download and process the CrossDocked dataset as described by the authors of [TargetDiff](https://github.com/guanjq/targetdiff)
 ```
 python data/extract_pocket.py
 python split_pl_dataset.py
 ```
-
-### CrossDocked
-We download and process the CrossDocked dataset as described by the authors of [TargetDiff](https://github.com/guanjq/targetdiff)
 
 ### Binding MOAD
 We download and process the Binding MOAD dataset following the authors of [DiffSBDD](https://github.com/arneschneuing/DiffSBDD)

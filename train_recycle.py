@@ -121,9 +121,9 @@ if __name__ == '__main__':
                 with torch.no_grad():
                     res_H, res_X, ligand_pos, ligand_feat, pred_res_type = model(res_H, res_X, res_S, res_batch, pred_ligand, ligand_feat, ligand_mask, edit_residue_num, residue_mask)
         sampled_type, _ = sample_from_categorical(pred_res_type.detach())
-        huber_loss = 2 * model.huber_loss(res_X[residue_mask][atom_mask], label_X[residue_mask][atom_mask]) + model.huber_loss(ligand_pos[ligand_mask.bool()], label_ligand[ligand_mask.bool()])
+        huber_loss = model.huber_loss(res_X[residue_mask][atom_mask], label_X[residue_mask][atom_mask]) + model.huber_loss(ligand_pos[ligand_mask.bool()], label_ligand[ligand_mask.bool()])
         pred_loss = model.pred_loss(pred_res_type, model.standard2alphabet[batch['amino_acid'][residue_mask] - 1])
-        struct_loss = model.proteinloss.structure_loss(res_X[residue_mask], label_X[residue_mask], batch['amino_acid'][residue_mask] - 1, batch['res_idx'][residue_mask], batch['amino_acid_batch'][residue_mask])
+        struct_loss = 2 * model.proteinloss.structure_loss(res_X[residue_mask], label_X[residue_mask], batch['amino_acid'][residue_mask] - 1, batch['res_idx'][residue_mask], batch['amino_acid_batch'][residue_mask])
         loss = huber_loss + pred_loss + struct_loss
         loss_list[0] += huber_loss
         loss_list[1] += pred_loss
@@ -174,9 +174,9 @@ if __name__ == '__main__':
                     res_H, res_X, ligand_pos, ligand_feat, pred_res_type = model(res_H, res_X, res_S, res_batch, pred_ligand, ligand_feat, ligand_mask, edit_residue_num, residue_mask)
                 ligand_mask = batch['ligand_mask'].bool()
                 sampled_type, _ = sample_from_categorical(pred_res_type.detach())
-                loss = 2 * model.huber_loss(res_X[residue_mask][atom_mask], label_X[residue_mask][atom_mask]) + model.huber_loss(ligand_pos[ligand_mask], label_ligand[ligand_mask])
+                loss = model.huber_loss(res_X[residue_mask][atom_mask], label_X[residue_mask][atom_mask]) + model.huber_loss(ligand_pos[ligand_mask], label_ligand[ligand_mask])
                 loss += model.pred_loss(pred_res_type, model.standard2alphabet[batch['amino_acid'][residue_mask] - 1])
-                loss += model.proteinloss.structure_loss(res_X[residue_mask], label_X[residue_mask], batch['amino_acid'][residue_mask] - 1, batch['res_idx'][residue_mask], batch['amino_acid_batch'][residue_mask])
+                loss += 2 * model.proteinloss.structure_loss(res_X[residue_mask], label_X[residue_mask], batch['amino_acid'][residue_mask] - 1, batch['res_idx'][residue_mask], batch['amino_acid_batch'][residue_mask])
                 sum_loss += loss.item()
                 sum_n += 1
                 aar += (model.standard2alphabet[batch['amino_acid'][residue_mask] - 1] == sampled_type).sum() / len(res_S[residue_mask])

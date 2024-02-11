@@ -123,9 +123,11 @@ if __name__ == '__main__':
         sampled_type, _ = sample_from_categorical(pred_res_type.detach())
         huber_loss = 2 * model.huber_loss(res_X[residue_mask][atom_mask], label_X[residue_mask][atom_mask]) + model.huber_loss(ligand_pos[ligand_mask.bool()], label_ligand[ligand_mask.bool()])
         pred_loss = model.pred_loss(pred_res_type, model.standard2alphabet[batch['amino_acid'][residue_mask] - 1])
-        loss = huber_loss + pred_loss
+        struct_loss = model.proteinloss.structure_loss(res_X[residue_mask], label_X[residue_mask], batch['amino_acid'][residue_mask] - 1, batch['res_idx'][residue_mask], batch['amino_acid_batch'][residue_mask])
+        loss = huber_loss + pred_loss + struct_loss
         loss_list[0] += huber_loss
         loss_list[1] += pred_loss
+        loss_list[2] += struct_loss
 
         aar = (model.standard2alphabet[batch['amino_acid'][residue_mask] - 1] == sampled_type).sum() / len(res_S[residue_mask])
         rmsd = torch.sqrt((res_X[residue_mask][:, :4].reshape(-1, 3) - label_X[residue_mask][:, :4].reshape(-1, 3)).norm(dim=1).sum() / len(res_S[residue_mask]) / 4)
@@ -174,6 +176,7 @@ if __name__ == '__main__':
                 sampled_type, _ = sample_from_categorical(pred_res_type.detach())
                 loss = 2 * model.huber_loss(res_X[residue_mask][atom_mask], label_X[residue_mask][atom_mask]) + model.huber_loss(ligand_pos[ligand_mask], label_ligand[ligand_mask])
                 loss += model.pred_loss(pred_res_type, model.standard2alphabet[batch['amino_acid'][residue_mask] - 1])
+                loss += model.proteinloss.structure_loss(res_X[residue_mask], label_X[residue_mask], batch['amino_acid'][residue_mask] - 1, batch['res_idx'][residue_mask], batch['amino_acid_batch'][residue_mask])
                 sum_loss += loss.item()
                 sum_n += 1
                 aar += (model.standard2alphabet[batch['amino_acid'][residue_mask] - 1] == sampled_type).sum() / len(res_S[residue_mask])

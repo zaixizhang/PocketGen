@@ -296,9 +296,9 @@ if __name__ == '__main__':
             for key in batch:
                 if torch.is_tensor(batch[key]):
                     batch[key] = batch[key].to(args.device)
-            aar, rmsd, = model.generate(batch, dir_name)
+            aar, rmsd, _ = model.generate(batch, dir_name)
 
-    score_list = vina_mp(dir_name, dir_name, np.arange(len(datalist)))
+    #score_list = vina_mp(dir_name, dir_name, np.arange(len(datalist)))
     record.extend(score_list)
     torch.save(record, os.path.join(args.target, 'record.pt'))
 

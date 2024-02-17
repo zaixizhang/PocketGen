@@ -189,13 +189,14 @@ class Pocket_Design_new(Module):
         self.alphabet2standard = torch.tensor([10, 0, 7, 19, 15, 6, 1, 16, 9, 3, 14, 11, 5, 2, 13, 18, 12, 8, 17, 4]).to(device)
         self.residue_atom_mask = residue_atom_mask.to(device)
         self.write_pdb = True
-        self.write_whole_pdb = True
+        self.write_whole_pdb = False
         self.generate_id = 0
         self.generate_id1 = 0
         self.proteinloss = ProteinFeature()
         self.pe = PositionalEncodings(16)
         self.res_atom_type = torch.tensor(RES_ATOM_TYPE).to(device)
         self.orig_data_path = config.orig_data_path
+        self.pocket10_path = config.pocket10_path
         if config.encoder.esm[:4] == 'esm2':
             encoder_args = {'_target_': 'esm2_adapter',
                             'encoder': {'d_model': 128,
@@ -315,7 +316,7 @@ class Pocket_Design_new(Module):
 
         return res_H, res_X, ligand_pos, ligand_feat, pred_res_type
 
-    def generate(self, batch):
+    def generate(self, batch, target_path='./generate'):
         print('Start Generating')
         residue_mask = batch['protein_edit_residue']
         res_S = batch['amino_acid_processed']
@@ -324,6 +325,7 @@ class Pocket_Design_new(Module):
         label_X, res_X = copy.deepcopy(batch['residue_pos']), copy.deepcopy(batch['residue_pos'])
         label_ligand, pred_ligand = copy.deepcopy(batch['ligand_pos']), copy.deepcopy(batch['ligand_pos'])
         res_X = interpolation_init_new(res_X, residue_mask, copy.deepcopy(batch['backbone_pos']), batch['amino_acid_batch'])
+        res_batch = batch['amino_acid_batch']
         for k in range(len(batch['amino_acid'])):
             if residue_mask[k]:
                 pos = res_X[k]
@@ -333,35 +335,45 @@ class Pocket_Design_new(Module):
         ligand_feat = self.ligand_atom_emb(batch['ligand_feat'])
 
         for t in range(self.interpolate_steps):
-            if t > 1:
+            if t < -1:
                 res_S[residue_mask] = self.alphabet2standard[sampled_type.detach().clone()] + 1
                 atom_emb = self.protein_atom_emb(self.res_atom_type[res_S])  # atom embedding
                 atom_pos_emb = self.atom_pos_embedding(torch.arange(14).to(self.device)).unsqueeze(0).repeat(res_S.shape[0], 1, 1)  # pos embedding
                 res_emb = self.residue_embedding(res_S).unsqueeze(-2).repeat(1, 14, 1)  # res embedding
                 res_pos_emb = self.pe(batch['res_idx']).unsqueeze(-2).repeat(1, 14, 1)  # res pos embedding
                 res_H = torch.cat([atom_emb, atom_pos_emb, res_emb, res_pos_emb], dim=-1)
-            elif t <= 1:
+            elif t == 0:
                 atom_emb = self.protein_atom_emb(self.res_atom_type[res_S])  # atom embedding
                 atom_pos_emb = self.atom_pos_embedding(torch.arange(14).to(self.device)).unsqueeze(0).repeat(res_S.shape[0], 1, 1)  # pos embedding
                 res_emb = self.residue_embedding(res_S).unsqueeze(-2).repeat(1, 14, 1)  # res embedding
                 res_pos_emb = self.pe(batch['res_idx']).unsqueeze(-2).repeat(1, 14, 1)  # res pos embedding
                 res_H = torch.cat([atom_emb, atom_pos_emb, res_emb, res_pos_emb], dim=-1)
 
-            _, res_X, pred_res_type, pred_ligand = self.encoder(res_H, res_X, res_S, batch['amino_acid_batch'], full_seq, pred_ligand, ligand_feat,
-                             batch['ligand_mask'], batch['edit_residue_num'], residue_mask, self.esmadapter, batch['full_seq_mask'], batch['r10_mask'])
+            res_H, res_X, pred_ligand, ligand_feat, pred_res_type, attend_logits = self.encoder(res_H, res_X, res_S, res_batch, pred_ligand, ligand_feat, batch['ligand_mask'], batch['edit_residue_num'], residue_mask)
+            if full_seq.shape[1] <= 1000:
+                h_residue = res_H.sum(-2)
+                batch_size = res_batch.max().item() + 1
+                encoder_out = {
+                    'feats': torch.zeros(batch_size, full_seq.shape[1], self.hidden_channels).to(self.device)}
+                encoder_out['feats'][batch['r10_mask']] = h_residue.view(-1, self.hidden_channels)
+                init_pred = full_seq
+                decode_logits = self.esmadapter(init_pred, encoder_out)['logits']
+                pred_res_type = decode_logits[batch['full_seq_mask']][:, 4:24]
 
-            sampled_type, _ = sample_from_topk(pred_res_type)
+            sampled_type, _ = sample_from_categorical(pred_res_type)
 
         aar = (self.standard2alphabet[batch['amino_acid'][residue_mask] - 1] == sampled_type).sum() / len(label_S[residue_mask])
         rmsd = torch.sqrt((res_X[residue_mask][:, :4].reshape(-1, 3) - label_X[residue_mask][:, :4].reshape(-1, 3)).norm(dim=1).sum() / len(label_S[residue_mask]) / 4)
+        
         if self.write_pdb:
-            res_S[residue_mask] = self.alphabet2standard[sampled_type] + 1
-            to_sdf(pred_ligand, batch['ligand_element'].long(), batch['ligand_mask'].bool(), batch['ligand_batch'],batch['ligand_bond_type'].long(), batch['ligand_bond_index'].long(), batch['edge_batch'], self.generate_id)
-            to_pdb(label_X, batch['amino_acid'], batch['res_idx'], batch['amino_acid_batch'], self.generate_id, batch['pocket_filename'], original=True)
-            self.generate_id = to_pdb(res_X, res_S, batch['res_idx'], batch['amino_acid_batch'], self.generate_id, batch['pocket_filename'], original = False)
+            res_S[residue_mask] = self.alphabet2standard[sampled_type.detach().clone()] + 1
+            to_sdf(pred_ligand, batch['ligand_element'].long(), batch['ligand_mask'].bool(), batch['ligand_batch'],batch['ligand_bond_type'].long(), batch['ligand_bond_index'].long(), batch['edge_batch'], self.generate_id, target_path)
+            to_pdb(label_X, batch['amino_acid'], batch['res_idx'], batch['amino_acid_batch'], self.generate_id, batch['protein_filename'], target_path, original=True)
+            self.generate_id = to_pdb(res_X, res_S, batch['res_idx'], batch['amino_acid_batch'], self.generate_id, batch['protein_filename'], target_path, original = False)
+            
         if self.write_whole_pdb:
-            self.generate_id1 = to_whole_pdb(res_X, res_S, batch['res_idx'], batch['amino_acid_batch'], self.generate_id1, batch['protein_filename'], batch['r10_mask'], self.orig_data_path)
-        return aar, rmsd
+            self.generate_id1 = to_whole_pdb(res_X, res_S, batch['res_idx'], batch['amino_acid_batch'], self.generate_id1, batch['protein_filename'], batch['r10_mask'], self.orig_data_path, target_path)
+        return aar, rmsd, attend_logits
 
 
 def sample_from_categorical(logits=None, temperature=1.0):
@@ -394,7 +406,7 @@ def sample_from_topk(tensor, k=3):
     # Use advanced indexing to gather the sampled elements from each row
     sampled_elements = top_indices[torch.arange(top_indices.shape[0]), sampled_indices]
 
-    return sampled_elements
+    return sampled_elements, None
 
 
 def random_mask(batch, device, mask=True):
@@ -487,11 +499,12 @@ def atom_feature(res_type, device):
     return x
 
 
-def to_pdb(res_X, amino_acid, res_idx, res_batch, index, pocket_filename, original):
+def to_pdb(res_X, amino_acid, res_idx, res_batch, index, pocket_filename, target_path, original):
     lines = ['HEADER    POCKET', 'COMPND    POCKET\n']
     num_protein = res_batch.max().item() + 1
     for n in range(num_protein):
-        pdb_path = './data/PDBBind_time_split_dataset/' + pocket_filename[n]
+        #pdb_path = os.path.join(orig_data_path, pocket_filename[n])
+        pdb_path = pocket_filename[n]
         with open(pdb_path, 'r') as f:
             pdb_block = f.read()
         protein = PDBProtein(pdb_block)
@@ -502,9 +515,9 @@ def to_pdb(res_X, amino_acid, res_idx, res_batch, index, pocket_filename, origin
         res_idx_protein = res_idx[mask]
         atom_count = 0
         if original:
-            path = './data/DSDP_op/po1/' + str(index + n) + '_orig.pdb'
+            path = os.path.join(target_path, str(index + n) + '_orig.pdb')
         else:
-            path = './data/DSDP_op/po1/' + str(index + n) + '.pdb'
+            path = os.path.join(target_path, str(index + n) + '.pdb')
         with open(path, 'w') as f:
             f.writelines(lines)
             for k in range(len(res_X_protein)):
@@ -527,10 +540,11 @@ def to_pdb(res_X, amino_acid, res_idx, res_batch, index, pocket_filename, origin
                     atom_count += 1
             f.write('END')
             f.write('\n')
+        openmm_relax(path)
     return index + num_protein
 
 
-def to_whole_pdb(res_X, amino_acid, res_idx, res_batch, index, protein_filename, r10_mask, orig_data_path):
+def to_whole_pdb(res_X, amino_acid, res_idx, res_batch, index, protein_filename, r10_mask, orig_data_path, target_path):
     lines = ['HEADER    POCKET', 'COMPND    POCKET\n']
     num_protein = res_batch.max().item() + 1
     for n in range(num_protein):
@@ -546,7 +560,7 @@ def to_whole_pdb(res_X, amino_acid, res_idx, res_batch, index, protein_filename,
         res_idx_protein = res_idx[mask]
         assert r10_mask[n].sum() == len(amino_acid_protein)
 
-        path = './data/DSDP_op/po1/' + str(index + n) + '_whole.pdb'
+        path = target_path + str(index + n) + '_whole.pdb'
         atom_count = 0
         stored_res_count = 0
         with open(path, 'w') as f:
@@ -579,13 +593,14 @@ def to_whole_pdb(res_X, amino_acid, res_idx, res_batch, index, protein_filename,
                         f.write(line)
             f.write('END')
             f.write('\n')
+        openmm_relax(path)
     return index + num_protein
 
 
-def to_sdf(pred_pos, elements, mask, ligand_batch, bond_types, bond_index, edge_batch, id):
+def to_sdf(pred_pos, elements, mask, ligand_batch, bond_types, bond_index, edge_batch, id, target_path):
     num_ligand = edge_batch.max().item() + 1
     for l in range(num_ligand):
-        filename = './data/DSDP_op/po1/' + str(id + l) + '.sdf'
+        filename = os.path.join(target_path, str(id + l) + '.sdf')
         positions = pred_pos[l][mask[l]]
         elements_protein = elements[ligand_batch == l]
         bond_types_protein = bond_types[edge_batch == l]

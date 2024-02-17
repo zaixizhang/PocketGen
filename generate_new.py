@@ -27,7 +27,6 @@ from functools import partial
 import subprocess
 import pickle
 import shutil
-import pybel
 import multiprocessing as mp
 
 
@@ -48,6 +47,7 @@ def calculate_vina(id, pro_path, lig_path, output=False):
     mol = Chem.MolFromMolFile(lig_path, sanitize=True)
     pos = mol.GetConformer(0).GetPositions()
     center = np.mean(pos, 0)
+    os.makedirs('./tmp', exist_ok=True)
     ligand_pdbqt = './tmp/' + str(id) + 'lig.pdbqt'
     protein_pqr = './tmp/' + str(id) + 'pro.pqr'
     protein_pdbqt = './tmp/' + str(id) + 'pro.pdbqt'
@@ -186,8 +186,7 @@ def input_data(args, index):
     return transform(data)
 
 
-def name2data(args):
-    name = args.data
+def name2data(name, args):
     pdb_path = os.path.join(args.target, name, name + '.pdb')
     lig_path = os.path.join(args.target, name, name + '_ligand.sdf')
     pocket_path = os.path.join(args.target, name, name + '_pocket.pdb')
@@ -238,8 +237,7 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, default='./configs/train_model.yml')
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--logdir', type=str, default='./logs')
-    parser.add_argument('--target', type=str, default='./generate')
-    parser.add_argument('--data', type=str, default='2p16')
+    parser.add_argument('--target', type=str, default='./examples')
     args = parser.parse_args()
     config = load_config(args.config)
     config_name = os.path.basename(args.config)[:os.path.basename(args.config).rfind('.')]
@@ -271,36 +269,43 @@ if __name__ == '__main__':
 
     print('Loading dataset...')
     names = ['2p16']
+    record = [[] for _ in range(len(names))]
 
-    record = []
-    data = name2data(args)
-    datalist = [data for _ in range(8)]
-    protein_filename = data['protein_filename']
-    ligand_filename = data['ligand_filename']
-    whole_protein_name = data['whole_protein_name']
+    for i in tqdm(range(len(names))):
+        print(i)
+        data = name2data(names[i], args)
+        datalist = [data for _ in range(8)]
+        protein_filename = data['protein_filename']
+        ligand_filename = data['ligand_filename']
+        whole_protein_name = data['whole_protein_name']
 
-    print(protein_filename)
+        print(protein_filename)
+        #lig_path = os.path.join(config.dataset.path, ligand_filename)
+        #pro_path = os.path.join(config.model.pocket10_path, protein_filename)
 
-    dir_name = os.path.dirname(protein_filename)
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
+        dir_name = os.path.dirname(protein_filename)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
 
-    model.generate_id = 0
-    model.generate_id1 = 0
-    test_loader = DataLoader(datalist, batch_size=1, shuffle=False,
-                             num_workers=config.train.num_workers,
-                             collate_fn=partial(collate_mols_block, batch_converter=batch_converter))
-    with torch.no_grad():
-        model.eval()
-        for batch in tqdm(test_loader, desc='Test'):
-            for key in batch:
-                if torch.is_tensor(batch[key]):
-                    batch[key] = batch[key].to(args.device)
-            aar, rmsd, _ = model.generate(batch, dir_name)
+        #original_vina = calculate_vina(None, protein_filename, ligand_filename)
+        #record[i].append(original_vina)
+        #print('original vina:', original_vina)
+        model.generate_id = 0
+        model.generate_id1 = 0
+        test_loader = DataLoader(datalist, batch_size=4, shuffle=False,
+                                    num_workers=config.train.num_workers,
+                                    collate_fn=partial(collate_mols_block, batch_converter=batch_converter))
+        with torch.no_grad():
+            model.eval()
+            for batch in tqdm(test_loader, desc='Test'):
+                for key in batch:
+                    if torch.is_tensor(batch[key]):
+                        batch[key] = batch[key].to(args.device)
+                aar, rmsd = model.generate(batch, dir_name)
+                print('aar: ', aar)
+                print('rmsd: ', rmsd)
 
-    #score_list = vina_mp(dir_name, dir_name, np.arange(len(datalist)))
-    record.extend(score_list)
-    torch.save(record, os.path.join(args.target, 'record.pt'))
+        score_list = vina_mp(dir_name, dir_name, np.arange(len(datalist)))
 
 
 

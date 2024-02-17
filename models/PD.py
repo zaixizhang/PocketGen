@@ -349,7 +349,7 @@ class Pocket_Design_new(Module):
                 res_pos_emb = self.pe(batch['res_idx']).unsqueeze(-2).repeat(1, 14, 1)  # res pos embedding
                 res_H = torch.cat([atom_emb, atom_pos_emb, res_emb, res_pos_emb], dim=-1)
 
-            res_H, res_X, pred_ligand, ligand_feat, pred_res_type, attend_logits = self.encoder(res_H, res_X, res_S, res_batch, pred_ligand, ligand_feat, batch['ligand_mask'], batch['edit_residue_num'], residue_mask)
+            res_H, res_X, pred_ligand, ligand_feat, pred_res_type = self.encoder(res_H, res_X, res_S, res_batch, pred_ligand, ligand_feat, batch['ligand_mask'], batch['edit_residue_num'], residue_mask)
             if full_seq.shape[1] <= 1000:
                 h_residue = res_H.sum(-2)
                 batch_size = res_batch.max().item() + 1
@@ -373,7 +373,7 @@ class Pocket_Design_new(Module):
             
         if self.write_whole_pdb:
             self.generate_id1 = to_whole_pdb(res_X, res_S, batch['res_idx'], batch['amino_acid_batch'], self.generate_id1, batch['protein_filename'], batch['r10_mask'], self.orig_data_path, target_path)
-        return aar, rmsd, attend_logits
+        return aar, rmsd
 
 
 def sample_from_categorical(logits=None, temperature=1.0):

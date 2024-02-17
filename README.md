@@ -62,6 +62,16 @@ We also provide the processed datasets for training from scratch at [zenodo](htt
 
 For each dataset, it requires the preprocessed .lmdb file and split file _split.pt
 
+### Benchmark Results
+
+Expected result of PocketGen on benchmark datasets:
+
+| CrossDocked | | | Binding MOAD | | |
+| --- | --- | --- | --- | --- | --- |
+| AAR(↑) | RMSD(↓) | Vina(↓) | AAR(↑) | RMSD(↓) | Vina(↓) |
+| 63.40±1.64% | 1.36±0.05 | -7.135±0.08 | 64.43±2.35% | 1.32±0.05 | -8.112±0.14 |
+
+
 ## Training
 Train on CrossDocked:
 ```

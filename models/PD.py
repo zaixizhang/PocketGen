@@ -376,7 +376,7 @@ class Pocket_Design_new(Module):
         return aar, rmsd
 
 
-def sample_from_categorical(logits=None, temperature=1.0):
+def sample_from_categorical(logits=None, temperature=2.0):
     if temperature:
         dist = torch.distributions.Categorical(logits=logits.div(temperature))
         tokens = dist.sample()

@@ -83,7 +83,7 @@ python train_recycle.py --config ./config/train_model_moad.yml
 ```
 
 ## Generation
-Pretrained checkpoint: [checkpoint.pt](https://drive.google.com/file/d/1nE1YUEPUJ4Szz6VUgxEKROaGQhAAG9_V/view?usp=sharing) 
+Pretrained checkpoint: [checkpoint.pt](https://drive.google.com/file/d/1cuvdiu3bXyni71A2hoeZSWT1NOsNfeD_/view?usp=sharing)
 ```
 python generate_new.py
 ```

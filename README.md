@@ -1,4 +1,4 @@
-# :loudspeaker: PocketGen: Full Atom Protein Pocket Generation with Sequence-Structure Consistency
+# :loudspeaker: PocketGen: Generating Full-Atom Ligand-Binding Protein Pockets
 
 <div align=center>
 <img src="./assets/pocketgen.png" width="100%" height="100%" alt="TOC" align=center />

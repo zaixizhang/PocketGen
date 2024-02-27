@@ -109,6 +109,17 @@ Sincerely appreciate your suggestions on our work!
 
 This project is licensed under the terms of the MIT license. See [LICENSE](https://github.com/zaixizhang/Pocket-Generation/blob/main/LICENSE) for additional details.
 
+## Reference
+```
+@article{zhang2024pocketgen,
+  title={PocketGen: Generating Full-Atom Ligand-Binding Protein Pockets},
+  author={Zhang, Zaixi and Shen, Wanxiang and Liu, Qi and Zitnik, Marinka},
+  journal={arXiv},
+  url={},
+  year={2024}
+}
+```
+
 
 
 

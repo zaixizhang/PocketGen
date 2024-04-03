@@ -1,4 +1,3 @@
-CUDA_LAUNCH_BLOCKING=1
 import shutil
 import argparse
 from functools import partial

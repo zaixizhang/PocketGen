@@ -24,6 +24,7 @@ conda install pytorch pytorch-cuda=11.6 -c pytorch -c nvidia
 conda install pyg -c pyg
 conda install rdkit openbabel tensorboard pyyaml easydict python-lmdb -c conda-forge
 conda install -c conda-forge openmm pdbfixer flask
+conda install -c conda-forge numpy swig boost-cpp sphinx sphinx_rtd_theme
 pip install meeko==0.1.dev3 wandb scipy pdb2pqr vina==1.2.2 
 python -m pip install git+https://github.com/Valdes-Tresanco-MS/AutoDockTools_py3
 ```

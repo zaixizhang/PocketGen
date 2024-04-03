@@ -24,7 +24,7 @@ train:
   num_workers: 4
   max_iters: 300_000
   warm_up: 5000
-  val_freq: 1000
+  val_freq: 10000
   max_grad_norm: 400
   optimizer:
     type: adam

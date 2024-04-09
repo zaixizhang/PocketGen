@@ -97,6 +97,9 @@ We provide one example of the generated pocket for pdbid-2p16 and visualize the 
 <img src="./assets/2p16.png" width="50%" height="50%" alt="TOC" align=center />
 </div>
 
+## Self-Consistency Evaluation
+The code to compute scRMSD, scTM, and pLDDT can be found at [eval](https://github.com/aqlaboratory/genie/tree/main).
+
 ## Acknowledgement
 This project draws in part from [TargetDiff](https://github.com/guanjq/targetdiff) and [ByProt](https://github.com/BytedProtein/ByProt), supported by MIT License and Apache-2.0 License. Thanks for their great work and code!
 

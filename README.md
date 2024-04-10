@@ -69,12 +69,18 @@ For each dataset, it requires the preprocessed .lmdb file and split file _split.
 
 ### Benchmark Results
 
-Expected result of PocketGen on benchmark datasets:
+Benchmarking PocketGen and other approaches for pocket generation on two datasets. Reported are average
+and standard deviation values across three independent runs. The best results are bolded.
 
-| CrossDocked | | | Binding MOAD | | |
-| --- | --- | --- | --- | --- | --- |
-| AAR(↑) | RMSD(↓) | Vina(↓) | AAR(↑) | RMSD(↓) | Vina(↓) |
-| 63.40±1.64% | 1.36±0.05 | -7.135±0.08 | 64.43±2.35% | 1.32±0.05 | -8.112±0.14 |
+| Model         | AAR (↑) CrossDocked | Designability (↑) CrossDocked | Vina (↓) CrossDocked | AAR (↑) Binding MOAD | Designability (↑) Binding MOAD | Vina (↓) Binding MOAD |
+|---------------|---------------------|-------------------------------|----------------------|----------------------|--------------------------------|-----------------------|
+| **Test set**  | -                   | 0.77                          | -7.016               | -                    | 0.79                           | -8.076                |
+| **DEPACT**    | 31.52±3.26%         | 0.68±0.04                     | -6.632±0.18          | 35.30±2.19%          | 0.67±0.06                       | -7.571±0.15           |
+| **dyMEAN**    | 38.71±2.16%         | 0.71±0.03                     | -6.855±0.06          | 41.22±1.40%          | 0.70±0.03                       | 0.71±0.04             |
+| **FAIR**      | 40.16±1.17%         | 0.73±0.02                     | -7.015±0.12          | 43.68±0.92%          | 0.72±0.05                       | -7.930±0.15           |
+| **RFDiffusion** | 46.57±2.07%       | 0.74±0.01                     | -6.936±0.07          | 45.31±2.73%          | 0.75±0.05                       | -7.942±0.14           |
+| **RFDiffusionAA** | 50.85±1.85%     | 0.75±0.03                     | -7.012±0.09          | 49.09±2.49%          | 0.78±0.03                       | -8.020±0.11           |
+| **PocketGen** | **63.40±1.64%**     | **0.77±0.02**                 | **-7.135±0.08**      | **64.43±2.35%**      | **0.80±0.04**                   | **-8.112±0.14**       |
 
 
 ## Training

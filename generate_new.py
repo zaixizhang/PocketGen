@@ -36,18 +36,17 @@ def convert_pdbqt_to_sdf(pdbqt_file, sdf_file):
     mol.write("sdf", sdf_file, overwrite=True)
 
 
-def calculate_vina(id, pro_path, lig_path, output=False):
+def calculate_vina(id, pro_path, lig_path, output=True):
     size_factor = 1.2
     buffer = 8.0
     if id is not None:
         pro_path = os.path.join(pro_path, str(id) + '.pdb')
         lig_path = os.path.join(lig_path, str(id) + '.sdf')
-    # openmm_relax(pro_path)
-    # relax_sdf(lig_path)
-    mol = Chem.MolFromMolFile(lig_path, sanitize=True)
+    #openmm_relax(pro_path)
+    #relax_sdf(lig_path)
+    mol = Chem.MolFromMolFile(lig_path, sanitize=False)
     pos = mol.GetConformer(0).GetPositions()
     center = np.mean(pos, 0)
-    os.makedirs('./tmp', exist_ok=True)
     ligand_pdbqt = './tmp/' + str(id) + 'lig.pdbqt'
     protein_pqr = './tmp/' + str(id) + 'pro.pqr'
     protein_pdbqt = './tmp/' + str(id) + 'pro.pdbqt'
@@ -72,8 +71,8 @@ def calculate_vina(id, pro_path, lig_path, output=False):
     score = v.energies(n_poses=1)[0][0]
     print('Score after docking : %.3f (kcal/mol)' % score)
     if output:
-        v.write_poses(pro_path[:-4] + '_docked.pdbqt', n_poses=1, overwrite=True)
-        convert_pdbqt_to_sdf(pro_path[:-4] + '_docked.pdbqt', pro_path[:-4] + '_docked.sdf')
+        v.write_poses(pro_path[:-4]+'_docked.pdbqt', n_poses=1, overwrite=True)
+        convert_pdbqt_to_sdf(pro_path[:-4]+'_docked.pdbqt', pro_path[:-4]+'_docked.sdf')
 
     return score
 
@@ -187,22 +186,21 @@ def input_data(args, index):
 
 
 def name2data(name, args):
-    pdb_path = os.path.join(args.target, name, name + '.pdb')
-    lig_path = os.path.join(args.target, name, name + '_ligand.sdf')
-    pocket_path = os.path.join(args.target, name, name + '_pocket.pdb')
+    pdb_path = os.path.join(args.target, name, name+'.pdb')
+    lig_path = os.path.join(args.target, name, name+'_ligand.sdf')
+    pocket_path = os.path.join(args.target, name, name+'_pocket.pdb')
     with open(pdb_path, 'r') as f:
         pdb_block = f.read()
     protein = PDBProtein(pdb_block)
     seq = ''.join(protein.to_dict_residue()['seq'])
     ligand = parse_sdf_file(lig_path, feat=False)
     r10_idx, r10_residues = protein.query_residues_ligand(ligand, radius=10, selected_residue=None, return_mask=False)
-    full_seq_idx, _ = protein.query_residues_ligand(ligand, radius=3.5, selected_residue=r10_residues,
-                                                    return_mask=False)
+    full_seq_idx, _ = protein.query_residues_ligand(ligand, radius=3.5, selected_residue=r10_residues, return_mask=False)
     assert len(r10_idx) == len(r10_residues)
 
     pdb_block_pocket = protein.residues_to_pdb_block(r10_residues)
     with open(pocket_path, 'w') as f:
-        f.write(pdb_block_pocket)
+            f.write(pdb_block_pocket)
 
     with open(pocket_path, 'r') as f:
         pdb_block = f.read()
@@ -210,14 +208,14 @@ def name2data(name, args):
 
     pocket_dict = pocket.to_dict_atom()
     residue_dict = pocket.to_dict_residue()
-
+    
     _, residue_dict['protein_edit_residue'] = pocket.query_residues_ligand(ligand)
-    assert residue_dict['protein_edit_residue'].sum() > 0 and residue_dict['protein_edit_residue'].sum() == len(
-        full_seq_idx)
+    assert residue_dict['protein_edit_residue'].sum() > 0 and residue_dict['protein_edit_residue'].sum() == len(full_seq_idx)
     assert len(residue_dict['protein_edit_residue']) == len(r10_idx)
     full_seq_idx.sort()
     r10_idx.sort()
-
+    
+            
     data = from_protein_ligand_dicts(
         protein_dict=torchify_dict(pocket_dict),
         ligand_dict=torchify_dict(ligand),
@@ -237,12 +235,12 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, default='./configs/train_model.yml')
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--logdir', type=str, default='./logs')
-    parser.add_argument('--target', type=str, default='./examples')
+    parser.add_argument('--target', type=str, default='./generate')
     args = parser.parse_args()
     config = load_config(args.config)
     config_name = os.path.basename(args.config)[:os.path.basename(args.config).rfind('.')]
     args.source = config.dataset.path
-    seed_all(2023)
+    seed_all(2089)
 
     dock_score = []
     protein_featurizer = FeaturizeProteinAtom()
@@ -266,11 +264,14 @@ if __name__ == '__main__':
         device=args.device
     ).to(args.device)
     model.load_state_dict(ckpt['model'])
-
+    
     print('Loading dataset...')
     names = ['2p16']
-    record = [[] for _ in range(len(names))]
 
+    record = [[] for _ in range(len(names))]
+    aar_list = [[] for _ in range(len(names))]
+    rmsd_list = [[] for _ in range(len(names))]
+    attend = []
     for i in tqdm(range(len(names))):
         print(i)
         data = name2data(names[i], args)
@@ -301,9 +302,19 @@ if __name__ == '__main__':
                 for key in batch:
                     if torch.is_tensor(batch[key]):
                         batch[key] = batch[key].to(args.device)
-                _, _ = model.generate(batch, dir_name)
+                aar, rmsd, attend_logits = model.generate(batch, dir_name)
+                attend.append(attend_logits.cpu())
+                print('aar: ', aar)
+                print('rmsd: ', rmsd)
 
         score_list = vina_mp(dir_name, dir_name, np.arange(len(datalist)))
+        #record[i].extend(score_list)
+        
+        original_vina = calculate_vina(None, protein_filename, ligand_filename)
+        print('original vina:', original_vina)
+        with open(os.path.join(args.target, names[i], 'attention.pkl'), 'wb') as file:
+            pickle.dump(attend, file)
+        #torch.save(record, os.path.join(args.target, 'record.pt'))
 
 
 

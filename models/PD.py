@@ -189,7 +189,7 @@ class Pocket_Design_new(Module):
         self.alphabet2standard = torch.tensor([10, 0, 7, 19, 15, 6, 1, 16, 9, 3, 14, 11, 5, 2, 13, 18, 12, 8, 17, 4]).to(device)
         self.residue_atom_mask = residue_atom_mask.to(device)
         self.write_pdb = True
-        self.write_whole_pdb = False
+        self.write_whole_pdb = True
         self.generate_id = 0
         self.generate_id1 = 0
         self.proteinloss = ProteinFeature()
@@ -349,7 +349,7 @@ class Pocket_Design_new(Module):
                 res_pos_emb = self.pe(batch['res_idx']).unsqueeze(-2).repeat(1, 14, 1)  # res pos embedding
                 res_H = torch.cat([atom_emb, atom_pos_emb, res_emb, res_pos_emb], dim=-1)
 
-            res_H, res_X, pred_ligand, ligand_feat, pred_res_type = self.encoder(res_H, res_X, res_S, res_batch, pred_ligand, ligand_feat, batch['ligand_mask'], batch['edit_residue_num'], residue_mask)
+            res_H, res_X, pred_ligand, ligand_feat, pred_res_type, attend_logits = self.encoder(res_H, res_X, res_S, res_batch, pred_ligand, ligand_feat, batch['ligand_mask'], batch['edit_residue_num'], residue_mask)
             if full_seq.shape[1] <= 1000:
                 h_residue = res_H.sum(-2)
                 batch_size = res_batch.max().item() + 1
@@ -373,10 +373,10 @@ class Pocket_Design_new(Module):
             
         if self.write_whole_pdb:
             self.generate_id1 = to_whole_pdb(res_X, res_S, batch['res_idx'], batch['amino_acid_batch'], self.generate_id1, batch['protein_filename'], batch['r10_mask'], self.orig_data_path, target_path)
-        return aar, rmsd
+        return aar, rmsd, attend_logits
 
 
-def sample_from_categorical(logits=None, temperature=2.0):
+def sample_from_categorical(logits=None, temperature=1.0):
     if temperature:
         dist = torch.distributions.Categorical(logits=logits.div(temperature))
         tokens = dist.sample()
@@ -548,7 +548,7 @@ def to_whole_pdb(res_X, amino_acid, res_idx, res_batch, index, protein_filename,
     lines = ['HEADER    POCKET', 'COMPND    POCKET\n']
     num_protein = res_batch.max().item() + 1
     for n in range(num_protein):
-        pdb_path = orig_data_path + protein_filename[n]
+        pdb_path = protein_filename[n]
         with open(pdb_path, 'r') as f:
             pdb_block = f.read()
         protein = PDBProtein(pdb_block)
@@ -560,7 +560,7 @@ def to_whole_pdb(res_X, amino_acid, res_idx, res_batch, index, protein_filename,
         res_idx_protein = res_idx[mask]
         assert r10_mask[n].sum() == len(amino_acid_protein)
 
-        path = target_path + str(index + n) + '_whole.pdb'
+        path = os.path.join(target_path, str(index + n) + '_whole.pdb')
         atom_count = 0
         stored_res_count = 0
         with open(path, 'w') as f:

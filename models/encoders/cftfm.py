@@ -1011,6 +1011,7 @@ class GETLayer(Module):
         sparse_mask[rows, depth, height, top_indices] = True
         attend_logits = attend_logits * attend_mask
         attend_logits = attend_logits * sparse_mask
+        return_attend = copy.deepcopy(attend_logits)
 
         # calculate beta
         atom_mask_head = atom_mask.unsqueeze(1).repeat(1, self.num_heads, 1)
@@ -1074,16 +1075,16 @@ class GETLayer(Module):
         ligand_pos = ligand_pos + scatter_sum((beta.unsqueeze(-1).unsqueeze(-1) * f_lig).sum(1), col, dim=0,
                                               dim_size=batch_size)
         ligand_pos = ligand_pos * ligand_mask.unsqueeze(-1)  # set empty entries zeros
-        return res_H, res_X, ligand_pos, ligand_feat
+        return res_H, res_X, ligand_pos, ligand_feat, return_attend
 
     def forward(self, res_H, res_X, atom_mask, batch, ligand_pos, ligand_feat, ligand_mask, edit_residue_num, residue_mask):
         #res_H, res_X = self.attention(res_H, res_X, atom_mask, batch, residue_mask)
-        res_H, res_X, ligand_pos, ligand_feat = self.attention_res_ligand(res_H, res_X, atom_mask, batch, ligand_pos,
+        res_H, res_X, ligand_pos, ligand_feat, return_attend = self.attention_res_ligand(res_H, res_X, atom_mask, batch, ligand_pos,
                                                                       ligand_feat, ligand_mask, edit_residue_num,
                                                                       residue_mask)
 
         pred_res_type = self.residue_mlp(res_H[residue_mask].sum(-2))
-        return res_H, res_X, ligand_pos, ligand_feat, pred_res_type
+        return res_H, res_X, ligand_pos, ligand_feat, pred_res_type, return_attend
 
 
 class EquivariantFFN(nn.Module):
@@ -1213,7 +1214,7 @@ class GET(nn.Module):
             res_H, ligand_feat = self.pre_layernorm(res_H, ligand_feat, atom_mask, ligand_mask)
 
         for i in range(self.n_layers):
-            res_H, res_X, ligand_pos, ligand_feat, pred_res_type = self._modules[f'layer_{i}'](res_H, res_X, atom_mask,
+            res_H, res_X, ligand_pos, ligand_feat, pred_res_type, attend = self._modules[f'layer_{i}'](res_H, res_X, atom_mask,
                                                                                                batch, ligand_pos,
                                                                                                ligand_feat, ligand_mask,
                                                                                                edit_residue_num,
@@ -1222,7 +1223,7 @@ class GET(nn.Module):
             res_H, res_X = self._modules[f'ffn_{i}'](res_H, res_X, atom_mask, residue_mask)
             res_H, ligand_feat = self._modules[f'layernorm1_{i}'](res_H, ligand_feat, atom_mask, ligand_mask)
 
-        return res_H, res_X, ligand_pos, ligand_feat, pred_res_type
+        return res_H, res_X, ligand_pos, ligand_feat, pred_res_type, attend
 
 
 def stable_norm(input, *args, **kwargs):

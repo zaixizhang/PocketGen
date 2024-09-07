@@ -1,0 +1,10 @@
+.ipynb_checkpoints
+__pycache__
+*.pyc
+tempignore
+*build/
+*.egg-info/
+*dist/
+
+*/.ipynb_checkpoints/*
+*/__pycache__/*

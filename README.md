@@ -100,7 +100,8 @@ Pretrained checkpoint on the CrossDocked training dataset: [checkpoint.pt](https
 ```
 python generate_new.py
 ```
-We provide one example of the generated pocket for pdbid-2p16 and visualize the interactions with [plip](https://github.com/pharmai/plip)
+We provide one example of the generated pocket for pdbid-2p16 and visualize the interactions with [plip](https://github.com/pharmai/plip)  
+For generation, please create a tmp dir under the running fold. 
 <div align=center>
 <img src="./assets/2p16.png" width="50%" height="50%" alt="TOC" align=center />
 </div>

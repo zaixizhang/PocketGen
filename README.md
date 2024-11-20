@@ -126,12 +126,13 @@ This project is licensed under the terms of the MIT license. See [LICENSE](https
 
 ## Reference
 ```
-@article{zhang2024pocketgen,
-  title={PocketGen: Generating Full-Atom Ligand-Binding Protein Pockets},
-  author={Zhang, Zaixi and Shen, Wanxiang and Liu, Qi and Zitnik, Marinka},
-  journal={arXiv},
-  url={},
-  year={2024}
+@article{zhang2024efficient,
+  title={Efficient generation of protein pockets with PocketGen},
+  author={Zhang, Zaixi and Shen, Wan Xiang and Liu, Qi and Zitnik, Marinka},
+  journal={Nature Machine Intelligence},
+  pages={1--14},
+  year={2024},
+  publisher={Nature Publishing Group UK London}
 }
 ```
 

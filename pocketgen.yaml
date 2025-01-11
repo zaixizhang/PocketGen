@@ -463,4 +463,4 @@ dependencies:
       - wandb==0.15.12
       - websockets==11.0.3
       - yarg==0.1.9
-prefix: /n/home09/zaixizhang/miniconda3/envs/targetdiff
+prefix: /n/home09/zaixizhang/miniconda3/envs/pocketgen

@@ -24,7 +24,7 @@ CACHE_DIR = '.data/saved/'
 
 
 def openmm_relax(pdb, out_pdb=None, excluded_chains=None, inverse_exclude=False):
-    tolerance = 2.39 * kilocalories_per_mole
+    tolerance_in_kj = 2.39 * unit.kilojoules_per_mole / unit.kilocalories_per_mole
     stiffness = 10.0 * kilocalories_per_mole / (angstroms ** 2)
 
     if excluded_chains is None:
@@ -71,7 +71,7 @@ def openmm_relax(pdb, out_pdb=None, excluded_chains=None, inverse_exclude=False)
 
     simulation = Simulation(modeller.topology, system, integrator)  # , platform)
     simulation.context.setPositions(modeller.positions)
-    simulation.minimizeEnergy(tolerance)
+    simulation.minimizeEnergy(tolerance_in_kj)
     state = simulation.context.getState(getPositions=True, getEnergy=True)
 
     with open(out_pdb, 'w') as fout:

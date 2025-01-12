@@ -40,7 +40,7 @@ def calculate_vina(id, pro_path, lig_path, output=True):
     size_factor = 1.2
     buffer = 8.0
     if id is not None:
-        pro_path = os.path.join(pro_path, str(id) + '.pdb')
+        pro_path = os.path.join(pro_path, str(id) + '_relaxed.pdb')
         lig_path = os.path.join(lig_path, str(id) + '.sdf')
     #openmm_relax(pro_path)
     #relax_sdf(lig_path)

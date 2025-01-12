@@ -31,7 +31,7 @@ def openmm_relax(pdb, out_pdb=None, excluded_chains=None, inverse_exclude=False)
         excluded_chains = []
 
     if out_pdb is None:
-        out_pdb = pdb
+        out_pdb = pdb[:-4]+'_relaxed'+'.pdb'
 
     fixer = PDBFixer(pdb)
     fixer.findNonstandardResidues()

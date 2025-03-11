@@ -116,7 +116,7 @@ This project draws in part from [TargetDiff](https://github.com/guanjq/targetdif
 
 ## Contact
 
-Zaixi Zhnag (zaixi@mail.ustc.edu.cn)
+Zaixi Zhnag (zz8680@princeton.edu)
 
 Sincerely appreciate your suggestions on our work!
 

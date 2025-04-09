@@ -18,8 +18,8 @@ conda activate pocketgen
 
 ### Install via Conda and Pip
 ```bash
-conda create -n targetdiff python=3.8
-conda activate targetdiff
+conda create -n pocketgen python=3.8
+conda activate pocketgen
 conda install pytorch pytorch-cuda=11.6 -c pytorch -c nvidia
 conda install pyg -c pyg
 conda install rdkit openbabel tensorboard pyyaml easydict python-lmdb -c conda-forge

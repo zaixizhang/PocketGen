@@ -86,11 +86,11 @@ and standard deviation values across three independent runs. The best results ar
 ## Training
 Train on CrossDocked:
 ```
-python train_recycle.py --config ./config/train_model.yml
+python train_recycle.py --config ./configs/train_model.yml
 ```
 Train on Binding MOAD:
 ```
-python train_recycle.py --config ./config/train_model_moad.yml
+python train_recycle.py --config ./configs/train_model_moad.yml
 ```
 
 ## Model Checkpoints
